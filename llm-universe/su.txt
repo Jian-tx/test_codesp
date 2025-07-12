@@ -1,0 +1,20 @@
+SELECT e.embedding_id, c.c0 AS text
+FROM embeddings e
+JOIN embedding_fulltext_search_content c ON e.id = c.id
+LIMIT 10;
+
+sqlite3 chroma_db/chroma.sqlite3
+
+python /workspaces/test_codesp/llm-universe/tt12.py
+python /workspaces/test_codesp/llm-universe/pp1.py
+python /workspaces/test_codesp/llm-universe/Wendal.py
+
+embedding = OpenAIEmbeddings(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url="https://xiaoai.plus/v1",
+    model="text-embedding-3-small"
+)
+
+python /workspaces/test_codesp/llm-universe/Wendal.py
+
+
