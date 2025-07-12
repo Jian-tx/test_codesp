@@ -1,6 +1,7 @@
 import streamlit as st
 from langchain_openai import ChatOpenAI
 import os
+from dotenv import load_dotenv, find_dotenv
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableBranch, RunnablePassthrough
@@ -8,6 +9,9 @@ import sys
 sys.path.append("llm-universe/notebook/C3_knowledge") # 将父目录放入系统路径中
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
+
+_ = load_dotenv(find_dotenv())
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 ##返回一个检索器
 def get_retriever():
@@ -127,3 +131,6 @@ def main():
 
 st.title("Hello Streamlit!")
 st.write("如果你能看到这句话，说明 Streamlit 正常渲染了。")
+
+if __name__ == "__main__":
+    main()
