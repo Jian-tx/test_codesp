@@ -4,17 +4,26 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableBranch, RunnablePassthrough
 from langchain_community.vectorstores import Chroma  # 只用Chroma
+from chromadb.config import Settings
 
 openai_api_key = st.secrets["OPENAI_API_KEY"]
+
+from chromadb.config import Settings  # 新增
 
 def get_retriever():
     embedding = OpenAIEmbeddings(
         openai_api_key=st.secrets["OPENAI_API_KEY"],
         openai_api_base="https://xiaoai.plus/v1"
     )
+    client_settings = Settings(
+        chroma_api_impl="rest",
+        chroma_server_host="localhost",  # 如果不是本机，改为服务器IP
+        chroma_server_http_port="8000"
+    )
     vectordb = Chroma(
-        persist_directory="chroma_db",
-        embedding_function=embedding
+        collection_name="your_collection",  # 替换为你的 collection 名称
+        embedding_function=embedding,
+        client_settings=client_settings
     )
     return vectordb.as_retriever()
 
