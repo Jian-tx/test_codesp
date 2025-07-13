@@ -1,52 +1,47 @@
 import streamlit as st
-from langchain_openai import ChatOpenAI
-import os
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableBranch, RunnablePassthrough
-import sys
-sys.path.append("llm-universe/notebook/C3_knowledge") # 将父目录放入系统路径中
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 
+# 1. 读取 OpenAI API Key
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 
-##返回一个检索器
+# 2. 加载文档（这里用一个简单示例文档，你可以替换为自己的文档加载逻辑）
+from langchain_core.documents import Document
+docs = [
+    Document(page_content="Streamlit 是一个非常好用的 Python 可视化开发框架。"),
+    Document(page_content="LangChain 可以帮助你快速开发大模型应用。")
+]
+
+# 3. 构建向量数据库（内存版，不依赖本地文件夹）
 def get_retriever():
-    # 定义 Embeddings
     embedding = OpenAIEmbeddings(openai_api_key=openai_api_key)
-    # 向量数据库持久化路径
-    persist_directory = 'data_base/vector_db/chroma'
-    # 加载数据库
-    vectordb = Chroma(
-        persist_directory=persist_directory,
-        embedding_function=embedding
-    )
+    vectordb = Chroma.from_documents(docs, embedding)
     return vectordb.as_retriever()
 
-
-##该函数处理检索器返回的文本
+# 4. 处理检索器返回的文本
 def combine_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs["context"])
 
-
-##该函数可以返回一个检索问答链
+# 5. 检索问答链
 def get_qa_history_chain():
     retriever = get_retriever()
     llm = ChatOpenAI(
-    temperature=0.0,
-    openai_api_key=openai_api_key,
-    base_url="https://xiaoai.plus/v1"
+        temperature=0.0,
+        openai_api_key=openai_api_key,
+        base_url="https://xiaoai.plus/v1"
     )
     condense_question_system_template = (
         "请根据聊天记录总结用户最近的问题，"
         "如果没有多余的聊天记录则返回用户的问题。"
     )
     condense_question_prompt = ChatPromptTemplate([
-            ("system", condense_question_system_template),
-            ("placeholder", "{chat_history}"),
-            ("human", "{input}"),
-        ])
+        ("system", condense_question_system_template),
+        ("placeholder", "{chat_history}"),
+        ("human", "{input}"),
+    ])
 
     retrieve_docs = RunnableBranch(
         (lambda x: not x.get("chat_history", False), (lambda x: x["input"]) | retriever, ),
@@ -76,12 +71,11 @@ def get_qa_history_chain():
     )
 
     qa_history_chain = RunnablePassthrough().assign(
-        context = retrieve_docs, 
-        ).assign(answer=qa_chain)
+        context=retrieve_docs,
+    ).assign(answer=qa_chain)
     return qa_history_chain
 
-
-##它接受检索问答链、用户输入及聊天历史，并以流式返回该链输出
+# 6. 生成回复
 def gen_response(chain, input, chat_history):
     response = chain.stream({
         "input": input,
@@ -91,41 +85,29 @@ def gen_response(chain, input, chat_history):
         if "answer" in res.keys():
             yield res["answer"]
 
-
-##定义main函数，该函数制定显示效果与逻辑
+# 7. Streamlit 主函数
 def main():
     st.markdown('### 🦜🔗 动手学大模型应用开发')
-    # st.session_state可以存储用户与应用交互期间的状态与数据
-    # 存储对话历史
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    # 存储检索问答链
     if "qa_history_chain" not in st.session_state:
         st.session_state.qa_history_chain = get_qa_history_chain()
-    # 建立容器 高度为500 px
     messages = st.container(height=550)
-    # 显示整个对话历史
-    for message in st.session_state.messages: # 遍历对话历史
-            with messages.chat_message(message[0]): # messages指在容器下显示，chat_message显示用户及ai头像
-                st.write(message[1]) # 打印内容
+    for message in st.session_state.messages:
+        with messages.chat_message(message[0]):
+            st.write(message[1])
     if prompt := st.chat_input("Say something"):
-        # 将用户输入添加到对话历史中
         st.session_state.messages.append(("human", prompt))
-        # 显示当前用户输入
         with messages.chat_message("human"):
             st.write(prompt)
-        # 生成回复
         answer = gen_response(
             chain=st.session_state.qa_history_chain,
             input=prompt,
             chat_history=st.session_state.messages
         )
-        # 流式输出
         with messages.chat_message("ai"):
             output = st.write_stream(answer)
-        # 将输出存入st.session_state.messages
         st.session_state.messages.append(("ai", output))
-
 
 st.title("Hello Streamlit!")
 st.write("如果你能看到这句话，说明 Streamlit 正常渲染了。")
