@@ -9,11 +9,11 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 def get_retriever():
     embedding = OpenAIEmbeddings(
-        openai_api_key=openai_api_key,
-        base_url="https://xiaoai.plus/v1"   # 这里加上 base_url
+        openai_api_key=st.secrets["OPENAI_API_KEY"],
+        openai_api_base="https://xiaoai.plus/v1"
     )
     vectordb = Chroma(
-        persist_directory="chroma_db",  # 你的chroma_db文件夹路径
+        persist_directory="chroma_db",
         embedding_function=embedding
     )
     return vectordb.as_retriever()
