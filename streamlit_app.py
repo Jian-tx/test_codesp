@@ -1,7 +1,6 @@
 import streamlit as st
 from langchain_openai import ChatOpenAI
 import os
-from dotenv import load_dotenv, find_dotenv
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableBranch, RunnablePassthrough
@@ -10,13 +9,12 @@ sys.path.append("llm-universe/notebook/C3_knowledge") # 将父目录放入系统
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 
-_ = load_dotenv(find_dotenv())
-openai_api_key = os.getenv("OPENAI_API_KEY")
+openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 ##返回一个检索器
 def get_retriever():
     # 定义 Embeddings
-    embedding = OpenAIEmbeddings()
+    embedding = OpenAIEmbeddings(openai_api_key=openai_api_key)
     # 向量数据库持久化路径
     persist_directory = 'data_base/vector_db/chroma'
     # 加载数据库
