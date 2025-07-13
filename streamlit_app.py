@@ -4,17 +4,23 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableBranch, RunnablePassthrough
 from langchain_community.vectorstores import FAISS
-
-openai_api_key = st.secrets["OPENAI_API_KEY"]
-
 from langchain_core.documents import Document
+
+# 读取 secrets
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+openai_api_base = st.secrets["OPENAI_API_BASE"]
+
+# 示例文档
 docs = [
     Document(page_content="Streamlit 是一个非常好用的 Python 可视化开发框架。"),
     Document(page_content="LangChain 可以帮助你快速开发大模型应用。")
 ]
 
 def get_retriever():
-    embedding = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    embedding = OpenAIEmbeddings(
+        openai_api_key=openai_api_key,
+        openai_api_base=openai_api_base
+    )
     vectordb = FAISS.from_documents(docs, embedding)
     return vectordb.as_retriever()
 
@@ -26,7 +32,7 @@ def get_qa_history_chain():
     llm = ChatOpenAI(
         temperature=0.0,
         openai_api_key=openai_api_key,
-        base_url="https://xiaoai.plus/v1"
+        base_url=openai_api_base
     )
     condense_question_system_template = (
         "请根据聊天记录总结用户最近的问题，"
