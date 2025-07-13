@@ -3,29 +3,24 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableBranch, RunnablePassthrough
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 
-# 1. 读取 OpenAI API Key
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 
-# 2. 加载文档（这里用一个简单示例文档，你可以替换为自己的文档加载逻辑）
 from langchain_core.documents import Document
 docs = [
     Document(page_content="Streamlit 是一个非常好用的 Python 可视化开发框架。"),
     Document(page_content="LangChain 可以帮助你快速开发大模型应用。")
 ]
 
-# 3. 构建向量数据库（内存版，不依赖本地文件夹）
 def get_retriever():
     embedding = OpenAIEmbeddings(openai_api_key=openai_api_key)
-    vectordb = Chroma.from_documents(docs, embedding)
+    vectordb = FAISS.from_documents(docs, embedding)
     return vectordb.as_retriever()
 
-# 4. 处理检索器返回的文本
 def combine_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs["context"])
 
-# 5. 检索问答链
 def get_qa_history_chain():
     retriever = get_retriever()
     llm = ChatOpenAI(
@@ -75,7 +70,6 @@ def get_qa_history_chain():
     ).assign(answer=qa_chain)
     return qa_history_chain
 
-# 6. 生成回复
 def gen_response(chain, input, chat_history):
     response = chain.stream({
         "input": input,
@@ -85,7 +79,6 @@ def gen_response(chain, input, chat_history):
         if "answer" in res.keys():
             yield res["answer"]
 
-# 7. Streamlit 主函数
 def main():
     st.markdown('### 🦜🔗 动手学大模型应用开发')
     if "messages" not in st.session_state:
